@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">GeoLoc</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="currentLoc">Current Location</string>
+    <string name="endLoc_hint">Enter your Destination</string>
+    <string name="endLoc"></string>
+</resources>
