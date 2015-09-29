@@ -1,11 +1,17 @@
 package com.mtap.geoloc;
+import android.content.Intent;
+import android.content.IntentSender;
+import android.location.Geocoder;
 import android.location.Location;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.*;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -21,7 +27,20 @@ public class MainActivity extends AppCompatActivity
     EditText _destination;
 
     GoogleApiClient mGoogleApiClient;
-    Location mLastLocation;
+
+    protected Location mLastLocation;
+    protected boolean mAddressRequested = false;
+    private AddressResultReceiver mResultReceiver;
+
+    // Request code to use when launching the resolution activity
+    private static final int REQUEST_RESOLVE_ERROR = 1001;
+    // Unique tag for the error dialog fragment
+    private static final String DIALOG_ERROR = "dialog_error";
+    // Bool to track whether the app is already resolving an error
+    private boolean mResolvingError = false;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,7 +70,19 @@ public class MainActivity extends AppCompatActivity
     }
 
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if(mGoogleApiClient != null)
+            mGoogleApiClient.connect();
+    }
 
+    @Override
+    protected void onStop() {
+        if(mGoogleApiClient != null)
+            mGoogleApiClient.disconnect();
+        super.onStop();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -85,12 +116,38 @@ public class MainActivity extends AppCompatActivity
                 .build();
     }
 
+    protected void startIntentService() {
+        Intent intent = new Intent(this, FetchAddressIntentService.class);
+        intent.putExtra(Constants.RECEIVER, mResultReceiver);
+        intent.putExtra(Constants.LOCATION_DATA_EXTRA, mLastLocation);
+        startService(intent);
+    }
+
+
+    public void fetchAddressButtonHandler(View view) {
+        // Only start the service to fetch the address if GoogleApiClient is
+        // connected.
+        if (mGoogleApiClient.isConnected() && mLastLocation != null) {
+            startIntentService();
+        }
+        mAddressRequested = true;
+    }
     @Override
     public void onConnected(Bundle bundle) {
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
+
         if (mLastLocation != null) {
-            _currentLocation.setText(String.valueOf(mLastLocation.toString()));
+            // Determine whether a GeoCoder is available.
+            if (!Geocoder.isPresent()) {
+                Toast.makeText(this, R.string.no_geocoder_available,
+                        Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            if (mAddressRequested) {
+                startIntentService();
+            }
         }
     }
 
@@ -101,6 +158,38 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
-        _currentLocation.setText(String.valueOf("Error getting data from Google"));
+
+    }
+
+
+    class AddressResultReceiver extends ResultReceiver {
+
+        String mAddressOutput;
+        public AddressResultReceiver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData) {
+
+            // Display the address string
+            // or an error message sent from the intent service.
+            mAddressOutput = resultData.getString(Constants.RESULT_DATA_KEY);
+            displayAddressOutput();
+
+            // Show a toast message if an address was found.
+            if (resultCode == Constants.SUCCESS_RESULT) {
+                showToast(getString(R.string.address_found));
+            }
+
+        }
+
+        private void showToast(String string) {
+            Toast.makeText(getApplicationContext(), string,
+                    Toast.LENGTH_LONG).show();
+        }
+
+        private void displayAddressOutput() {
+        }
     }
 }

@@ -6,4 +6,10 @@
     <string name="currentLoc">Current Location</string>
     <string name="endLoc_hint">Enter your Destination</string>
     <string name="endLoc"></string>
+    <string name="service_not_available">Service not Available</string>
+    <string name="invalid_lat_long_used">invalid latitude and longitude</string>
+    <string name="no_address_found">Address not found</string>
+    <string name="address_found">Address found</string>
+    <string name="getLocationButtonText">Get Location</string>
+    <string name="no_geocoder_available">GeoCoder not available</string>
 </resources>
